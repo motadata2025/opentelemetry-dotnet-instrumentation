@@ -109,13 +109,20 @@ function Setup-Windows-Service([string]$InstallDir, [string]$WindowsServiceName,
     if (Test-Path $regKey) {
         # Cleanup existing variables
         Cleanup-Environment-Variables -WindowsServiceName $WindowsServiceName
+        
+        # Get new variables from the properties file
+        $exportedVarsTable = Export-EnvironmentVariablesFromPropertiesFile -OtelServiceName $OTelServiceName
+
+        # Merge $exportedVarsTable into $varsTable (overwriting existing keys or adding new ones)
+        foreach ($key in $exportedVarsTable.Keys) {
+            $varsTable[$key] = $exportedVarsTable[$key]
+        }
 
         # Migrate remaining external variables to install variables
         [string []] $varsList = Migrate-Environment-Variables -ServiceRegistryKey $regKey -InstallVars $varsTable
-
+        
         # Set install variables
         Set-ItemProperty $regKey -Name Environment -Value $varsList
-        Export-EnvironmentVariablesFromPropertiesFile -OtelServiceName $OTelServiceName
     }
     else {
         throw "Invalid service '$WindowsServiceName'. Service does not exist."
@@ -141,7 +148,7 @@ function Cleanup-Environment-Variables([string]$WindowsServiceName) {
         "DOTNET_SHARED_STORE",
         "DOTNET_STARTUP_HOOKS",
         # OpenTelemetry
-        "OTEL_DOTNET_"
+        "OTEL_"
     )
 
     $regPath = "HKLM:SYSTEM\CurrentControlSet\Services\"
@@ -382,7 +389,14 @@ function Register-OpenTelemetryForCurrentSession() {
     }
 
     $varsTable = Get-Environment-Variables-Table -InstallDir $installDir -OTelServiceName $OTelServiceName
-    Export-EnvironmentVariablesFromPropertiesFile -OtelServiceName $OTelServiceName
+    
+    # Get new variables from the properties file
+    $exportedVarsTable = Export-EnvironmentVariablesFromPropertiesFile -OtelServiceName $OTelServiceName
+
+    # Merge $exportedVars into $varsTable (overwriting existing keys or adding new ones)
+    foreach ($key in $exportedVarsTable.Keys) {
+        $varsTable[$key] = $exportedVarsTable[$key]
+    }
 
     foreach ($var in $varsTable.Keys) {
         Set-Item "env:$var" $varsTable[$var]
@@ -402,7 +416,12 @@ function Register-OpenTelemetryForIIS() {
     $installDir = Get-Current-InstallDir
 
     if (-not $installDir) {
-        throw "OpenTelemetry Core must be setup first. Run 'Install-OpenTelemetryCore' to setup OpenTelemetry Core."
+        Install-OpenTelemetryCore
+        $installDir = Get-Current-InstallDir
+
+        if (-not $installDir) {
+            throw "OpenTelemetry Core must be setup first. Run 'Install-OpenTelemetryCore' to setup OpenTelemetry Core."
+        }
     }
 
     if ($installDir -notlike "$env:ProgramFiles\*") {
@@ -435,7 +454,12 @@ function Register-OpenTelemetryForWindowsService() {
     $installDir = Get-Current-InstallDir
 
     if (-not $installDir) {
-        throw "OpenTelemetry Core must be setup first. Run 'Install-OpenTelemetryCore' to setup OpenTelemetry Core."
+        Install-OpenTelemetryCore
+        $installDir = Get-Current-InstallDir
+
+        if (-not $installDir) {
+            throw "OpenTelemetry Core must be setup first. Run 'Install-OpenTelemetryCore' to setup OpenTelemetry Core."
+        }
     }
 
     Setup-Windows-Service -InstallDir $installDir -WindowsServiceName $WindowsServiceName -OTelServiceName $OTelServiceName
@@ -578,6 +602,8 @@ function Export-EnvironmentVariablesFromPropertiesFile {
     if (-not (Test-Path $PropertiesFilePath)) {
         throw "Properties file '$PropertiesFilePath' not found."
     }
+    
+    $exportedVars = @{}
 
     # Read the file and filter out empty lines or comment lines
     $lines = Get-Content $PropertiesFilePath | Where-Object { $_ -and $_ -notmatch '^\s*#' }
@@ -591,9 +617,13 @@ function Export-EnvironmentVariablesFromPropertiesFile {
             $envKey = $key -replace '\.', '_' | ForEach-Object { $_.ToUpper() }
 
             Write-Verbose "Setting environment variable '$envKey' to '$value' from properties file."
-            Set-Item env:$envKey "$value"
+            
+            # Construct the variable string as expected in the environment
+            $exportedVars.Add($envKey, $value)
         }
     }
+
+    return $exportedVars
 }
 
 
