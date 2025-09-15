@@ -615,11 +615,12 @@ function Export-EnvironmentVariablesFromPropertiesFile {
 
             # Transform the key to uppercase and replace '.' with '_'
             $envKey = $key -replace '\.', '_' | ForEach-Object { $_.ToUpper() }
+            $valueKey = $value -replace '\\', ''	    
 
             Write-Verbose "Setting environment variable '$envKey' to '$value' from properties file."
             
             # Construct the variable string as expected in the environment
-            $exportedVars.Add($envKey, $value)
+            $exportedVars.Add($envKey, $valueKey)
         }
     }
 
