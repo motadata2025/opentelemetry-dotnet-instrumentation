@@ -23,7 +23,7 @@ function Get-Current-InstallDir() {
 }
 
 function Get-CLIInstallDir-From-InstallDir([string]$InstallDir) {
-    $dir = "OpenTelemetry .NET AutoInstrumentation"
+    $dir = "Motadata .NET AutoInstrumentation"
     
     if ($InstallDir -eq "<auto>") {
         return (Join-Path $Env:ProgramFiles $dir)
@@ -292,7 +292,7 @@ function Install-OpenTelemetryCore() {
 
     $installDir = Get-CLIInstallDir-From-InstallDir $InstallDir
     $archivePath = $null
-    $LocalPath = Join-Path $PSScriptRoot "otel-dotnet-win.zip"
+    $LocalPath = Join-Path $PSScriptRoot "motadata-dotnet-win.zip"
 
 
     try {
@@ -597,7 +597,7 @@ function Export-EnvironmentVariablesFromPropertiesFile {
         [string]$OtelServiceName
     )
 
-    $propertiesFilePath = Join-Path $PSScriptRoot "config\$OtelServiceName.properties"
+    $propertiesFilePath = Resolve-Path (Join-Path $PSScriptRoot "..\..\..\config\$OtelServiceName.properties")
 
     if (-not (Test-Path $PropertiesFilePath)) {
         throw "Properties file '$PropertiesFilePath' not found."

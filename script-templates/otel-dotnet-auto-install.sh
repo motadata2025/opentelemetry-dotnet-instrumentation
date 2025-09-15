@@ -6,7 +6,7 @@ echo "Script directory: $SCRIPT_DIR"
 
 # Use the SERVICE_NAME variable to determine which properties file to load; default to "service.name1"
 SERVICE_NAME="${SERVICE_NAME:-service.name1}"
-PROPERTIES_FILE="$SCRIPT_DIR/config/${SERVICE_NAME}.properties"
+PROPERTIES_FILE="$(cd "$SCRIPT_DIR/../../.." && pwd)/config/${SERVICE_NAME}.properties"
 echo "Properties file: $PROPERTIES_FILE"
 
 # Check if the properties file exists
@@ -67,7 +67,7 @@ if [ -z "$ARCHITECTURE" ]; then
 fi
 
 # Define the path to the existing zip file using a relative path
-OTEL_ARCHIVE_PATH="otel-dotnet-linux.zip"
+OTEL_ARCHIVE_PATH="motadata-dotnet-linux.zip"
 LOCAL_PATH="$SCRIPT_DIR/$OTEL_ARCHIVE_PATH"
 
 # Check if the zip file exists
@@ -78,7 +78,7 @@ fi
 
 # Define the unzipped folder name (same as the zip file name without the .zip extension)
 UNZIPPED_FOLDER_NAME="${OTEL_ARCHIVE_PATH%.zip}"
-UNZIPPED_FOLDER_PATH="$SCRIPT_DIR/otel-dotnet-auto"
+UNZIPPED_FOLDER_PATH="$SCRIPT_DIR/motadata-dotnet-auto"
 
 
 # Clean up the installation directory and extract the zip file
